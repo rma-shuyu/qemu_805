@@ -435,6 +435,8 @@ void vp_init_simple(struct vp_device *vp, struct pci_device *pci)
     const char *mode;
     u32 offset, base, mul;
     u64 addr;
+    u32 addr_io;
+    void *addr_mem;
     u8 type;
 
     memset(vp, 0, sizeof(*vp));
@@ -535,10 +537,39 @@ void vp_init_simple(struct vp_device *vp, struct pci_device *pci)
     } else {
         dprintf(1, "pci dev %pP using legacy (0.9.5) virtio mode\n", pci);
         vp->legacy.bar = 0;
-        vp->legacy.ioaddr = pci_enable_iobar(pci, PCI_BASE_ADDRESS_0);
-        if (!vp->legacy.ioaddr)
-            return;
-        vp->legacy.mode = VP_ACCESS_IO;
+        /*
+         * Support both IO bar and MEM bar
+         */
+        base = PCI_BASE_ADDRESS_0;
+        addr = pci_config_readl(pci->bdf, base);
+        dprintf(1, "pci dev base 0x%x addr:0x%08llx\n", base, addr);
+        if (addr & PCI_BASE_ADDRESS_SPACE_IO) {
+            addr &= PCI_BASE_ADDRESS_IO_MASK;
+            vp->legacy.mode = VP_ACCESS_IO;
+        } else if ((addr & PCI_BASE_ADDRESS_MEM_TYPE_MASK) == PCI_BASE_ADDRESS_MEM_TYPE_64) {
+            addr &= PCI_BASE_ADDRESS_MEM_MASK;
+            addr |= (u64)pci_config_readl(pci->bdf, base + 4) << 32;
+            dprintf(1, "pci dev base 0x%x addr:0x%08llx\n", base + 4, addr);
+            vp->legacy.mode = (addr > 0xffffffffll) ?
+                VP_ACCESS_PCICFG : VP_ACCESS_MMIO;
+        } else {
+            addr &= PCI_BASE_ADDRESS_MEM_MASK;
+            vp->legacy.mode = VP_ACCESS_MMIO;
+        }
+        switch (vp->legacy.mode) {
+        case VP_ACCESS_IO:
+            addr_io = pci_enable_iobar(pci, base);
+            if (!addr_io)
+                return;
+            vp->legacy.ioaddr = addr_io;
+            break;
+        case VP_ACCESS_MMIO:
+            addr_mem = pci_enable_membar(pci, base);
+            if (!addr_mem)
+                return;
+            vp->legacy.memaddr = addr_mem;
+            break;
+        }
     }
 
     vp_reset(vp);
