@@ -443,6 +443,10 @@ void vhost_net_stop(VirtIODevice *dev, NetClientState *ncs,
     int total_notifiers = data_queue_pairs * 2 + cvq;
     int nvhosts = data_queue_pairs + cvq;
     int i, r;
+     char timestamp[64];
+
+            rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s vhost_net_stop_one  begin\n", timestamp);
 
     for (i = 0; i < nvhosts; i++) {
         if (i < data_queue_pairs) {
@@ -453,12 +457,18 @@ void vhost_net_stop(VirtIODevice *dev, NetClientState *ncs,
         vhost_net_stop_one(get_vhost_net(peer), dev);
     }
 
-    r = k->set_guest_notifiers(qbus->parent, total_notifiers, false);
-    if (r < 0) {
-        fprintf(stderr, "vhost guest notifier cleanup failed: %d\n", r);
-        fflush(stderr);
-    }
-    assert(r >= 0);
+    //         rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    // fprintf(stderr, "%s vhost_net_stop_one  end\n", timestamp);
+
+    // r = k->set_guest_notifiers(qbus->parent, total_notifiers, false);
+    // if (r < 0) {
+    //     fprintf(stderr, "vhost guest notifier cleanup failed: %d\n", r);
+    //     fflush(stderr);
+    // }
+
+    //         rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    // fprintf(stderr, "%s set_guest_notifiers  end\n", timestamp);
+    // assert(r >= 0);
 }
 
 void vhost_net_cleanup(struct vhost_net *net)

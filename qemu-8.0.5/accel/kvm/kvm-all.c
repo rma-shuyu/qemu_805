@@ -2087,12 +2087,33 @@ int kvm_irqchip_update_msi_route(KVMState *s, int virq, MSIMessage msg,
     return kvm_update_routing_entry(s, &kroute);
 }
 
+static
+void kvm_get_timestamp_prefix(char *buf, int buf_size)
+{
+	struct tm *info;
+	char date[24];
+	struct timespec ts;
+	long usec;
+
+	clock_gettime(CLOCK_REALTIME, &ts);
+	info = localtime(&ts.tv_sec);
+	usec = ts.tv_nsec / 1000;
+	if (info == NULL) {
+		snprintf(buf, buf_size, "[%s.%06ld] ", "unknown date", usec);
+		return;
+	}
+
+	strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", info);
+	snprintf(buf, buf_size, "[%s.%06ld] ", date, usec);
+}
+
 static int kvm_irqchip_assign_irqfd(KVMState *s, EventNotifier *event,
                                     EventNotifier *resample, int virq,
                                     bool assign)
 {
     int fd = event_notifier_get_fd(event);
     int rfd = resample ? event_notifier_get_fd(resample) : -1;
+     char timestamp[64];
 
     struct kvm_irqfd irqfd = {
         .fd = fd,
@@ -2134,7 +2155,15 @@ static int kvm_irqchip_assign_irqfd(KVMState *s, EventNotifier *event,
         return -ENOSYS;
     }
 
-    return kvm_vm_ioctl(s, KVM_IRQFD, &irqfd);
+    kvm_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s kvm_vm_ioctl begin\n", timestamp);
+
+    int ret = kvm_vm_ioctl(s, KVM_IRQFD, &irqfd);
+
+    kvm_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s kvm_vm_ioctl end\n", timestamp);
+
+    return ret;
 }
 
 int kvm_irqchip_add_adapter_route(KVMState *s, AdapterInfo *adapter)

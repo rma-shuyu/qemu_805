@@ -215,11 +215,11 @@ static void vhost_user_blk_stop(VirtIODevice *vdev)
 
     vhost_dev_stop(&s->dev, vdev, true);
 
-    ret = k->set_guest_notifiers(qbus->parent, s->dev.nvqs, false);
-    if (ret < 0) {
-        error_report("vhost guest notifier cleanup failed: %d", ret);
-        return;
-    }
+    // ret = k->set_guest_notifiers(qbus->parent, s->dev.nvqs, false);
+    // if (ret < 0) {
+    //     error_report("vhost guest notifier cleanup failed: %d", ret);
+    //     return;
+    // }
 
     vhost_dev_disable_notifiers(&s->dev, vdev);
 }

@@ -66,6 +66,10 @@ void hmp_info_migrate(Monitor *mon, const QDict *qdict)
         if (info->has_downtime) {
             monitor_printf(mon, "downtime: %" PRIu64 " ms\n",
                            info->downtime);
+            monitor_printf(mon, "stop_dev_time: %" PRIu64 " ms\n",
+                           info->expected_downtime);
+            monitor_printf(mon, "savevm_state_time: %" PRIu64 " ms\n",
+                           info->setup_time);
         }
         if (info->has_setup_time) {
             monitor_printf(mon, "setup: %" PRIu64 " ms\n",

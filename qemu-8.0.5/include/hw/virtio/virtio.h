@@ -218,7 +218,7 @@ struct VirtioDeviceClass {
 
 void virtio_instance_init_common(Object *proxy_obj, void *data,
                                  size_t vdev_size, const char *vdev_name);
-
+void rte_log_get_timestamp_prefix(char *buf, int buf_size);
 void virtio_init(VirtIODevice *vdev, uint16_t device_id, size_t config_size);
 
 void virtio_cleanup(VirtIODevice *vdev);

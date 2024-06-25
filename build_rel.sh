@@ -9,7 +9,7 @@ rm -rf build
 mkdir -p build
 cd build
 
-../configure --prefix=${INSTALL_PATH} --enable-kvm \
+../configure --prefix=${INSTALL_PATH} --extra-cflags="-s" --enable-trace-backends=log --enable-kvm \
 --disable-debug-info --enable-vnc --target-list=x86_64-softmmu
 
 make -j8

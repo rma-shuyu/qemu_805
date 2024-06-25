@@ -1133,6 +1133,8 @@ static void populate_time_info(MigrationInfo *info, MigrationState *s)
         info->has_expected_downtime = true;
         info->expected_downtime = s->expected_downtime;
     }
+    info->expected_downtime = s->stop_dev_time;
+    info->setup_time = s->savevm_state_time;
 }
 
 static void populate_ram_info(MigrationInfo *info, MigrationState *s)
@@ -3437,6 +3439,8 @@ static void migration_completion(MigrationState *s)
 
         if (!ret) {
             ret = vm_stop_force_state(RUN_STATE_FINISH_MIGRATE);
+            s->stop_dev_time_end = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
+            s->stop_dev_time = s->stop_dev_time_end - s->downtime_start;
             trace_migration_completion_vm_stop(ret);
             if (ret >= 0) {
                 ret = migration_maybe_pause(s, &current_active_state,
@@ -3452,6 +3456,8 @@ static void migration_completion(MigrationState *s)
                 qemu_file_set_rate_limit(s->to_dst_file, INT64_MAX);
                 ret = qemu_savevm_state_complete_precopy(s->to_dst_file, false,
                                                          s->block_inactive);
+                s->savevm_state_time_end = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
+                s->savevm_state_time = s->savevm_state_time_end - s->stop_dev_time_end;
             }
         }
         qemu_mutex_unlock_iothread();

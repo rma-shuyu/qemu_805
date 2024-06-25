@@ -1109,6 +1109,10 @@ static void virtio_pci_vector_mask(PCIDevice *dev, unsigned vector)
     VirtQueue *vq = virtio_vector_first_queue(vdev, vector);
     EventNotifier *n;
     int index;
+     char timestamp[64];
+
+    rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_pci_vector_mask data begin vector %u\n", timestamp, vector);
 
     while (vq) {
         index = virtio_get_queue_index(vq);
@@ -1122,10 +1126,16 @@ static void virtio_pci_vector_mask(PCIDevice *dev, unsigned vector)
         vq = virtio_vector_next_queue(vq);
     }
 
+    rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_pci_vector_mask data end vector %u\n", timestamp, vector);
+
     if (vector == vdev->config_vector) {
         n = virtio_config_get_guest_notifier(vdev);
         virtio_pci_one_vector_mask(proxy, VIRTIO_CONFIG_IRQ_IDX, vector, n);
     }
+
+        rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_pci_vector_mask config end vector %u\n", timestamp, vector);
 }
 
 static void virtio_pci_vector_poll(PCIDevice *dev,
@@ -1237,10 +1247,10 @@ static int virtio_pci_set_guest_notifiers(DeviceState *d, int nvqs, bool assign)
     VirtioDeviceClass *k = VIRTIO_DEVICE_GET_CLASS(vdev);
     int r, n;
     bool with_irqfd = msix_enabled(&proxy->pci_dev) &&
-        kvm_msi_via_irqfd_enabled();
+    kvm_msi_via_irqfd_enabled();
 
     nvqs = MIN(nvqs, VIRTIO_QUEUE_MAX);
-
+    char timestamp[64];
     /*
      * When deassigning, pass a consistent nvqs value to avoid leaking
      * notifiers. But first check we've actually been configured, exit
@@ -1259,12 +1269,21 @@ static int virtio_pci_set_guest_notifiers(DeviceState *d, int nvqs, bool assign)
         !assign) {
         msix_unset_vector_notifiers(&proxy->pci_dev);
         if (proxy->vector_irqfd) {
+                        rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s kvm_virtio_pci_vector_vq_release  begin\n", timestamp);
             kvm_virtio_pci_vector_vq_release(proxy, nvqs);
+                        rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s kvm_virtio_pci_vector_config_release  begin\n", timestamp);
             kvm_virtio_pci_vector_config_release(proxy);
             g_free(proxy->vector_irqfd);
             proxy->vector_irqfd = NULL;
         }
     }
+
+
+
+            rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_pci_set_guest_notifier  begin\n", timestamp);
 
     for (n = 0; n < nvqs; n++) {
         if (!virtio_queue_get_num(vdev, n)) {
@@ -1281,6 +1300,9 @@ static int virtio_pci_set_guest_notifiers(DeviceState *d, int nvqs, bool assign)
     if (r < 0) {
         goto config_assign_error;
     }
+
+            rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_pci_set_guest_notifier  end\n", timestamp);
     /* Must set vector notifier after guest notifier has been assigned */
     if ((with_irqfd ||
          (vdev->use_guest_notifier_mask && k->guest_notifier_mask)) &&

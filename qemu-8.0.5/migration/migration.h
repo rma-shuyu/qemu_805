@@ -309,6 +309,12 @@ struct MigrationState {
     /* Timestamp when VM is down (ms) to migrate the last stuff */
     int64_t downtime_start;
     int64_t downtime;
+    int64_t stop_dev_time_end;
+    int64_t stop_dev_time;
+    int64_t sync_region_time_end;
+    int64_t sync_region_time;
+    int64_t savevm_state_time_end;
+    int64_t savevm_state_time;
     int64_t expected_downtime;
     bool enabled_capabilities[MIGRATION_CAPABILITY__MAX];
     int64_t setup_time;

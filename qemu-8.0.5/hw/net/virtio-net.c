@@ -387,9 +387,15 @@ static void virtio_net_set_status(struct VirtIODevice *vdev, uint8_t status)
     VirtIONetQueue *q;
     int i;
     uint8_t queue_status;
+     char timestamp[64];
 
     virtio_net_vnet_endian_status(n, status);
+            rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_net_vhost_status  begin\n", timestamp);
     virtio_net_vhost_status(n, status);
+
+            rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_net_vhost_status  end\n", timestamp);
 
     for (i = 0; i < n->max_queue_pairs; i++) {
         NetClientState *ncs = qemu_get_subqueue(n->nic, i);

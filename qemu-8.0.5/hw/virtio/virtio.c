@@ -3152,6 +3152,25 @@ void virtio_cleanup(VirtIODevice *vdev)
     qemu_del_vm_change_state_handler(vdev->vmstate);
 }
 
+void rte_log_get_timestamp_prefix(char *buf, int buf_size)
+{
+	struct tm *info;
+	char date[24];
+	struct timespec ts;
+	long usec;
+
+	clock_gettime(CLOCK_REALTIME, &ts);
+	info = localtime(&ts.tv_sec);
+	usec = ts.tv_nsec / 1000;
+	if (info == NULL) {
+		snprintf(buf, buf_size, "[%s.%06ld] ", "unknown date", usec);
+		return;
+	}
+
+	strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", info);
+	snprintf(buf, buf_size, "[%s.%06ld] ", date, usec);
+}
+
 static void virtio_vmstate_change(void *opaque, bool running, RunState state)
 {
     VirtIODevice *vdev = opaque;
@@ -3159,6 +3178,7 @@ static void virtio_vmstate_change(void *opaque, bool running, RunState state)
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(qbus);
     bool backend_run = running && virtio_device_started(vdev, vdev->status);
     vdev->vm_running = running;
+    char timestamp[64];
 
     if (backend_run) {
         virtio_set_status(vdev, vdev->status);
@@ -3169,8 +3189,14 @@ static void virtio_vmstate_change(void *opaque, bool running, RunState state)
     }
 
     if (!backend_run) {
+            rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_set_status stop begin\n", timestamp);
         virtio_set_status(vdev, vdev->status);
+            rte_log_get_timestamp_prefix(timestamp, sizeof(timestamp));
+    fprintf(stderr, "%s virtio_set_status stop end\n", timestamp);
     }
+
+
 }
 
 void virtio_instance_init_common(Object *proxy_obj, void *data,
